@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Expense Tracker</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary: #2d4059;
+            --secondary: #00d4ff;
+            --success: #21bf73;
+            --danger: #ff5252;
+            --light: #f0f4f8;
+            --dark: #212529;
+            --accent: #ffd700;
+            --shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            --shadow-hover: 0 8px 25px rgba(0, 0, 0, 0.25);
+            --border-radius: 10px;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), 
+                        url('https://images.unsplash.com/photo-1502071159283-e863190a09b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') 
+                        no-repeat center center fixed;
+            background-size: cover;
+            line-height: 1.6;
+            color: var(--dark);
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1150px;
+            width: 90%;
+            margin: 20px auto;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: clamp(1.8rem, 5vw, 2.8rem);
+            color: var(--primary);
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 1s ease-in;
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-5px);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            margin-bottom: 8px;
+            color: var(--primary);
+            font-weight: 500;
+            font-size: clamp(1rem, 3vw, 1.15rem);
+        }
+
+        input, select {
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: var(--border-radius);
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            background: #fff;
+            transition: var(--transition);
+            width: 100%;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--secondary);
+            box-shadow: 0 0 8px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            transition: var(--transition);
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 300px;
+            margin: 10px auto;
+            display: block;
+        }
+
+        .btn::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+
+        .btn:hover::after {
+            width: 400px;
+            height: 400px;
+        }
+
+        .btn:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .btn-primary {
+            background: var(--secondary);
+            color: var(--dark);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-download {
+            background: var(--accent);
+            color: var(--dark);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            font-size: clamp(0.85rem, 2vw, 1rem);
+        }
+
+        th {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+        }
+
+        td {
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        tr:hover {
+            background: #e9ecef;
+            transition: var(--transition);
+        }
+
+        .month-section {
+            margin-bottom: 25px;
+            display: none;
+        }
+
+        .month-section.active {
+            display: block;
+        }
+
+        .month-header {
+            background: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            border-radius: var(--border-radius) var(--border-radius) 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            box-shadow: var(--shadow);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .month-header h3 {
+            font-size: clamp(1.2rem, 3.5vw, 1.5rem);
+        }
+
+        .total-card {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--success);
+            color: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            animation: slideUp 0.5s ease;
+            box-shadow: var(--shadow);
+        }
+
+        .total-item {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.15);
+            transition: var(--transition);
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+        }
+
+        .total-item:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.02);
+        }
+
+        .category {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: clamp(0.8rem, 2vw, 0.95rem);
+            color: white;
+            font-weight: 500;
+            display: inline-block;
+            transition: var(--transition);
+            box-shadow: var(--shadow);
+        }
+
+        .category:hover {
+            transform: scale(1.1);
+        }
+
+        .filter-section {
+            margin-bottom: 20px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .form-grid {
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            }
+            .container {
+                width: 95%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            .month-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .btn-download {
+                margin-left: 0;
+                margin-top: 15px;
+                width: 100%;
+            }
+            .total-card {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .total-item {
+                width: 100%;
+                min-width: unset;
+            }
+            .container {
+                padding: 15px;
+                margin: 15px auto;
+            }
+            .btn {
+                width: 100%;
+                max-width: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 15px;
+            }
+            th, td {
+                padding: 10px;
+            }
+            .month-header {
+                padding: 10px 15px;
+            }
+            .total-card {
+                padding: 15px;
+            }
+            .container {
+                width: 100%;
+                margin: 10px 0;
+                border-radius: 0;
+            }
+            .header {
+                margin-bottom: 20px;
+            }
+            .form-grid {
+                gap: 15px;
+            }
+            .btn {
+                padding: 10px 15px;
+            }
+            .table-container {
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Monthly Expense Tracker</h1>
+        </div>
+
+        <div class="card">
+            <form id="expenseForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <input type="text" id="description" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="amount">Amount (₹)</label>
+                        <input type="number" id="amount" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="category">Category</label>
+                        <select id="category" required>
+                            <option value="Food">Food</option>
+                            <option value="Transport">Transport</option>
+                            <option value="Entertainment">Entertainment</option>
+                            <option value="Bills">Bills</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Expense</button>
+            </form>
+        </div>
+
+        <div class="card filter-section">
+            <div class="form-group">
+                <label for="monthFilter">Select Month</label>
+                <select id="monthFilter"></select>
+            </div>
+        </div>
+
+        <div id="monthlyExpenses"></div>
+
+        <div class="card total-card">
+            <div class="total-item">
+                <span>Total Expenses (Today):</span>
+                <span id="dayTotal">₹0.00</span>
+            </div>
+            <div class="total-item">
+                <span>Total Expenses (Week):</span>
+                <span id="weekTotal">₹0.00</span>
+            </div>
+            <div class="total-item">
+                <span>Total Expenses (Month):</span>
+                <span id="grandTotal">₹0.00</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { jsPDF } = window.jspdf;
+
+        class ExpenseTracker {
+            constructor() {
+                this.expenses = {};
+                this.form = document.getElementById('expenseForm');
+                this.monthlyExpenses = document.getElementById('monthlyExpenses');
+                this.grandTotal = document.getElementById('grandTotal');
+                this.weekTotal = document.getElementById('weekTotal');
+                this.dayTotal = document.getElementById('dayTotal');
+                this.monthFilter = document.getElementById('monthFilter');
+                this.currentMonth = this.getCurrentMonthKey();
+                this.init();
+            }
+
+            init() {
+                const savedExpenses = localStorage.getItem('monthlyExpenses');
+                if (savedExpenses) {
+                    this.expenses = JSON.parse(savedExpenses);
+                }
+
+                this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+                this.monthFilter.addEventListener('change', () => this.renderExpenses());
+                this.updateMonthFilter();
+                this.renderExpenses();
+            }
+
+            getCurrentMonthKey() {
+                const now = new Date();
+                return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            }
+
+            getWeekNumber(date) {
+                const d = new Date(date);
+                d.setHours(0, 0, 0, 0);
+                d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+                const yearStart = new Date(d.getFullYear(), 0, 1);
+                return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+            }
+
+            calculateTotals(monthKey) {
+                const expenses = this.expenses[monthKey] || [];
+                const now = new Date();
+                const currentWeek = this.getWeekNumber(now);
+                const currentDate = now.toISOString().split('T')[0];
+
+                const monthTotal = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+                
+                const weekTotal = expenses
+                    .filter(expense => this.getWeekNumber(expense.date) === currentWeek)
+                    .reduce((sum, expense) => sum + expense.amount, 0);
+
+                const dayTotal = expenses
+                    .filter(expense => expense.date === currentDate)
+                    .reduce((sum, expense) => sum + expense.amount, 0);
+
+                return { monthTotal, weekTotal, dayTotal };
+            }
+
+            handleSubmit(e) {
+                e.preventDefault();
+                
+                const date = new Date(document.getElementById('date').value);
+                const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+
+                if (!this.expenses[monthKey]) {
+                    this.expenses[monthKey] = [];
+                }
+
+                const expense = {
+                    id: Date.now(),
+                    description: document.getElementById('description').value,
+                    amount: parseFloat(document.getElementById('amount').value),
+                    date: document.getElementById('date').value,
+                    category: document.getElementById('category').value
+                };
+
+                this.expenses[monthKey].push(expense);
+                this.saveExpenses();
+                this.updateMonthFilter();
+                this.renderExpenses();
+                this.form.reset();
+            }
+
+            deleteExpense(monthKey, id) {
+                this.expenses[monthKey] = this.expenses[monthKey].filter(expense => expense.id !== id);
+                if (this.expenses[monthKey].length === 0) {
+                    delete this.expenses[monthKey];
+                }
+                this.saveExpenses();
+                this.updateMonthFilter();
+                this.renderExpenses();
+            }
+
+            saveExpenses() {
+                localStorage.setItem('monthlyExpenses', JSON.stringify(this.expenses));
+            }
+
+            getCategoryColor(category) {
+                const colors = {
+                    'Food': '#ff6b6b',
+                    'Transport': '#4ecdc4',
+                    'Entertainment': '#9b59b6',
+                    'Bills': '#f1c40f',
+                    'Other': '#95a5a6'
+                };
+                return colors[category] || '#95a5a6';
+            }
+
+            updateMonthFilter() {
+                const months = Object.keys(this.expenses).sort((a, b) => b.localeCompare(a));
+                this.monthFilter.innerHTML = months.map(month => {
+                    const date = new Date(month + '-01');
+                    const monthName = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+                    return `<option value="${month}" ${month === this.currentMonth ? 'selected' : ''}>${monthName}</option>`;
+                }).join('');
+            }
+
+            downloadMonthPDF(monthKey) {
+                const doc = new jsPDF();
+                const monthSection = document.getElementById(`month-${monthKey}`);
+                const tableContainer = monthSection.querySelector('.table-container');
+
+                html2canvas(tableContainer, {
+                    scale: 2,
+                    useCORS: true
+                }).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgProps = doc.getImageProperties(imgData);
+                    const pdfWidth = doc.internal.pageSize.getWidth() - 20;
+                    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+
+                    const date = new Date(monthKey + '-01');
+                    const monthName = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+                    const totals = this.calculateTotals(monthKey);
+                    doc.setFontSize(18);
+                    doc.text(`Expense Report - ${monthName}`, 14, 20);
+                    doc.setFontSize(12);
+                    doc.text(`Day Total: ₹${totals.dayTotal.toFixed(2)} | Week Total: ₹${totals.weekTotal.toFixed(2)} | Month Total: ₹${totals.monthTotal.toFixed(2)}`, 14, 30);
+
+                    doc.addImage(imgData, 'PNG', 10, 40, pdfWidth, pdfHeight);
+                    doc.save(`expenses_${monthKey}.pdf`);
+                }).catch(error => {
+                    console.error('Error generating PDF:', error);
+                    alert('Failed to generate PDF. Please try again.');
+                });
+            }
+
+            renderExpenses() {
+                this.monthlyExpenses.innerHTML = '';
+                const selectedMonth = this.monthFilter.value || this.currentMonth;
+
+                const sortedMonths = Object.keys(this.expenses).sort((a, b) => b.localeCompare(a));
+
+                sortedMonths.forEach(monthKey => {
+                    const expenses = this.expenses[monthKey];
+                    const currentMonthTotal = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+                    const monthSection = document.createElement('div');
+                    monthSection.className = `card month-section ${monthKey === selectedMonth ? 'active' : ''}`;
+                    monthSection.id = `month-${monthKey}`;
+
+                    const date = new Date(monthKey + '-01');
+                    const monthName = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+
+                    monthSection.innerHTML = `
+                        <div class="month-header">
+                            <h3>${monthName} (Total: ₹${currentMonthTotal.toFixed(2)})</h3>
+                            <button class="btn btn-download download-btn" data-month="${monthKey}">Download PDF</button>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Description</th>
+                                        <th>Amount (₹)</th>
+                                        <th>Date</th>
+                                        <th>Category</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expenseList-${monthKey}"></tbody>
+                            </table>
+                        </div>
+                    `;
+
+                    this.monthlyExpenses.appendChild(monthSection);
+
+                    const expenseList = monthSection.querySelector(`#expenseList-${monthKey}`);
+                    expenses.forEach(expense => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${expense.description}</td>
+                            <td>₹${expense.amount.toFixed(2)}</td>
+                            <td>${new Date(expense.date).toLocaleDateString()}</td>
+                            <td><span class="category" style="background: ${this.getCategoryColor(expense.category)}">${expense.category}</span></td>
+                            <td><button class="btn btn-danger delete-btn" data-id="${expense.id}" data-month="${monthKey}">Delete</button></td>
+                        `;
+                        expenseList.appendChild(row);
+                    });
+
+                    const deleteButtons = monthSection.querySelectorAll('.delete-btn');
+                    deleteButtons.forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const month = btn.dataset.month;
+                            const id = parseInt(btn.dataset.id);
+                            this.deleteExpense(month, id);
+                        });
+                    });
+
+                    const downloadBtn = monthSection.querySelector('.download-btn');
+                    downloadBtn.addEventListener('click', () => this.downloadMonthPDF(monthKey));
+                });
+
+                const totals = this.calculateTotals(selectedMonth);
+                this.dayTotal.textContent = `₹${totals.dayTotal.toFixed(2)}`;
+                this.weekTotal.textContent = `₹${totals.weekTotal.toFixed(2)}`;
+                this.grandTotal.textContent = `₹${totals.monthTotal.toFixed(2)}`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const tracker = new ExpenseTracker();
+        });
+    </script>
+</body>
+</html>
